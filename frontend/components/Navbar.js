@@ -6,7 +6,7 @@ export default function Navbar() {
     <nav className="flex justify-between items-center px-6 py-4 shadow-md">
       <Link href="/">
         <div className="flex items-center space-x-2">
-          <Image src="/TMT_icon.jpg" alt="TailorMyTaipei Logo" width={32} height={32} />
+          <Image src="/TMT_icon.jpg" alt="TailorMyTaipei Logo" width={34} height={34} />
           <span className="font-bold text-xl text-green-800">TailorMyTaipei</span>
         </div>
       </Link>
