@@ -1,7 +1,9 @@
 import csv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from db_models import Base, POI
+from backend.db_models import POI
+# from backend.database import Base
+from backend.base import Base
 
 # PostgreSQL 連線字串
 DATABASE_URL = "postgresql://REDACTED@localhost:5432/tailor_taipei"
