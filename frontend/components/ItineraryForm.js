@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 const today = new Date().toISOString().split("T")[0];
 
-export default function ItineraryForm() {
+export default function ItineraryForm({ onSubmit }) {
   const router = useRouter();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -23,16 +23,18 @@ export default function ItineraryForm() {
     alert("Please select both start and end dates!");
     return;
   }
-    router.push({
-      pathname: "/itinerary",
-      query: {
-        start: startDate,
-        end: endDate,
-        interests: interests.join(","),
-        prefs: prefs.join(","),
-      },
-    });
-  };
+    const formData = {
+      // start_date: startDate,
+      // end_date: endDate,
+      start:      startDate,
+      end:        endDate,
+      interests,
+      prefs,
+      // budget: 'mid', // 你可以額外加上預算選擇元件
+    }
+
+    onSubmit(formData)  // ← 將表單資料傳回首頁的父元件
+  }
 
   return (
     <div
