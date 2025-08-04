@@ -67,48 +67,16 @@ export default function MyTripsPage() {
     }
   };
 
-  // if (!token) {
-  //   // 如果沒 token，可能還沒登入，導向登入頁
-  //   window.location.href = "/login";
-  //   }
-
-  // useEffect(() => {
-  //   fetchTrips();
-  // }, []);
-
-// ✅ 第一次載入時從 localStorage 拿 token
-//   useEffect(() => {
-//   const token = localStorage.getItem("token");
-//   if (!token) {
-//     window.location.href = "/login";
-//   } else {
-//     setToken(token);
-//   }
-// }, []);
-
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   if (!token) {
-  //     window.location.href = "/login";
-  //   } else {
-  //     setToken(token);
-  //     // fetchTrips(token); // 👈 登入後就直接呼叫 trips
-  //   }
-  // }, []);
-
-  // // ✅ 等 token 有值時再 fetch trips
-  // useEffect(() => {
-  //   if (token) {
-  //     fetchTrips();
-  //   }
-  // }, [token]);
-
   return (
     <div>
       <Navbar />
       <main className="p-6">
         <h1 className="text-2xl font-bold mb-4 text-green-800">My Trips</h1>
-        {loading && <p>Loading trips...</p>}
+        {/* {loading && <p>Loading trips...</p>} */}
+        {loading && <p className="text-gray-500">Loading trips...</p>}
+        {!loading && trips.length === 0 && (
+          <p className="text-gray-600 italic">You haven't saved any trips yet.</p>
+        )}
         {error && <p className="text-red-500">Error: {error}</p>}
         {trips.length === 0 && !loading && <p>No trips found.</p>}
 
@@ -116,13 +84,6 @@ export default function MyTripsPage() {
           {trips.map((trip) => (
             <div key={trip.id} className="border rounded-xl p-4 shadow">
               <TripCard trip={trip} onDelete={handleDelete} />
-              {/* <TripCard trip={trip} /> */}
-              {/* <button
-                className="mt-2 px-4 py-1 text-sm bg-red-500 text-white rounded"
-                onClick={() => handleDelete(trip.id)}
-              >
-                Delete
-              </button> */}
             </div>
           ))}
         </div>

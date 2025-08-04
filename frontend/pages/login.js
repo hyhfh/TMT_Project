@@ -1,4 +1,3 @@
-// ✅ /pages/login.js 完整登入頁面（儲存 token 到 localStorage）
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
@@ -13,21 +12,23 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:8000/login', {
+      const res = await fetch('http://localhost:8000/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+          body: new URLSearchParams({
+            username: email,
+            password: password,
+          }),
       });
 
       if (!res.ok) throw new Error('Login failed');
       const data = await res.json();
-
       // 儲存 JWT token
       localStorage.setItem('token', data.access_token);
-      
       // 顯示 token 以供除錯
       console.log("🔐 Login success, token:", data.access_token);
-
       // 登入成功導向首頁
       router.push('/');
     } catch (err) {
