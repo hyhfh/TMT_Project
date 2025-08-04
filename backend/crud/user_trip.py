@@ -1,27 +1,15 @@
 from sqlalchemy.orm import Session
-
 from backend.models.user_trip import UserTrip
 from backend.schemas.user_trip import TripCreate
 
-# → 看起來是處理「儲存行程」的邏輯
-# 現在使用的版本，有處理 user_id 綁定，邏輯正確，保留
-
 def create_trip(db: Session, user_id: int, trip: TripCreate) -> UserTrip:
-    # db_trip = UserTrip(
-    #     user_id=user_id,
-    #     start_date=trip.start_date,
-    #     end_date=trip.end_date,
-    #     interests=",".join(trip.interests),
-    #     preferences=",".join(trip.preferences),
-    #     schedule=trip.schedule,
-    # )
     print(type(trip.interests))
     db_trip = UserTrip(
             user_id=user_id,
             start_date=trip.start_date,
             end_date=trip.end_date,
-            interests=trip.interests,         # ✅ 保持 list
-            preferences=trip.preferences,     # ✅ 保持 list
+            interests=trip.interests,         # 保持 list
+            preferences=trip.preferences,     # 保持 list
             schedule=trip.schedule,
         )
     db.add(db_trip)  # 把你建立的物件（這裡是 db_trip）加進資料庫 session，但還沒真正寫入資料庫。
