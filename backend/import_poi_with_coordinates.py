@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from db_models import POI, engine
 from backend.base import Base
 
-csv_file = "data/poi_taipei_with_coordinates.csv"
+csv_file = "data/poi_taipei_tagged.csv"
 
 with open(csv_file, newline='', encoding='utf-8') as file:
     reader = csv.DictReader(file)
