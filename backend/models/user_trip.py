@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-
-# from backend.database import Base      # 你原本的 database.py 已經 export Base
 from backend.base import Base
 from backend.models.user import User     # 如果 user model 叫 models/user.py
-
-#  → 應該已經有儲存 user_id 對應行程的資料表
-
 class UserTrip(Base):
     __tablename__ = "user_trips"
 
