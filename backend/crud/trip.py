@@ -26,16 +26,8 @@ def create_trip(db: Session, user_id: int, trip: TripCreate) -> TripOut:
 
 def get_trips_by_user(db: Session, user_id: int):
     trips = db.query(UserTrip).filter(UserTrip.user_id == user_id).all()
-    print("📦 Retrieved trips:", trips)
     return trips
-    # return db.query(UserTrip).filter(UserTrip.user_id == user_id).all()
 
-# # 根據使用者取得所有行程
-# def get_user_trips(user_id: int, db: Session) -> List[UserTrip]:
-#     return db.query(UserTrip).filter(UserTrip.user_id == user_id).all()
-
-# 刪除某一筆行程
-# def delete_user_trip(trip_id: int, user_id: int, db: Session):
 def delete_user_trip(db: Session, trip_id: int, user_id: int):
     trip = db.query(UserTrip).filter(UserTrip.id == trip_id, UserTrip.user_id == user_id).first()
     if trip:
