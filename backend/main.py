@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import user, trip, poi  # 如果 main.py 在 backend 下
+from backend.routers import user, trip, poi, recommendation
 from backend.database import engine  # 使用統一的 database.py
-# from backend.routers import trip as trip_router # 在載入 routers/trip.py 的行程功能 router，這樣 FastAPI 啟動後 /trips API 才能生效
 from backend.base import Base
 from backend import models  # 載入模型（為了 Base.metadata.create_all 建表）
 
@@ -25,3 +24,4 @@ app.add_middleware(
 app.include_router(user.router)
 app.include_router(trip.router)
 app.include_router(poi.router)
+app.include_router(recommendation.router)
