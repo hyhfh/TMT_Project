@@ -1,30 +1,53 @@
-from fastapi import FastAPI, Query, APIRouter, Request, Depends
+from fastapi import FastAPI, Query, APIRouter, Request, Depends, HTTPException
 import csv, requests, random
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.db_models import POI
+import pandas as pd
+from pathlib import Path
+from fastapi.encoders import jsonable_encoder
+import math
+from urllib.parse import quote
+from backend.schemas.poi import POIOut
+import urllib.parse
+from typing import List
+from backend.utils.map import generate_map_url  # ✅ 導入
 
 router = APIRouter()
-# app = FastAPI()
 
-
-# 讀取 CSV 檔案
-def load_poi_data():
-    pois = []
-    with open("data/poi_taipei.csv", encoding="utf-8") as f:
-        reader = csv.DictReader(f)  # 把每一行資料轉成字典
-        for row in reader:
-            row["category"] = [c.strip() for c in row["category"].split(",")]
-            pois.append(row)
-        # for row in reader:
-        #     pois.append(row)
-    return pois
-
-# API 路由：回傳所有景點資料
 @router.get("/api/pois")
-def get_pois():
-    return JSONResponse(content=load_poi_data())
+def get_pois(db: Session = Depends(get_db)):
+    pois = db.query(POI).all()
+    result = []
+    for p in pois:
+        # 1) 把所有可能是 NaN / +∞ / -∞ 的浮點數都檢查一下
+        lat = p.lat   if (p.lat   is not None and math.isfinite(p.lat))   else None
+        lng = p.lng   if (p.lng   is not None and math.isfinite(p.lng))   else None
+        # 組成 Google Maps 搜尋連結
+        # map_url = f"https://www.google.com/maps/search/?api=1&query={quote(p.name)}" if p.name else ""
+        map_url = f"https://www.google.com/maps/search/?api=1&query={quote(p.name + ' 台北市')}" if p.name else ""
+        pop = p.popularity or 0  # 若 popularity 是 None，就給 0 當預設值
+
+        result.append({
+            "id":           p.id,
+            "name":         p.name,
+            "introduction": p.introduction,
+            "address":      p.address,
+            "lat":          lat,
+            "lng":          lng,
+            "image_url":    p.image_url,
+            "attraction":   p.attraction,
+            "food":         p.food,
+            "nature":       p.nature,
+            "culture":      p.culture,
+            "shopping":     p.shopping,
+            # "popularity":   pop,
+            "popularity":   p.popularity,
+            "map_url":      map_url,    # ← 新增這行
+        })
+    # 直接 return list，讓 FastAPI 幫你做 JSON 編碼
+    return result
 
 # 即時天氣 路由
 WEATHER_API_KEY = "252d2b3be8b1f208ec09327f10cdb1d1" 
@@ -79,36 +102,29 @@ def generate_itinerary(
             # 這裡放每天行程
         ],
     }
-    
-    
-@router.post("/recommend_itinerary")
-async def recommend_itinerary(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    days = data.get("days", 3)  # 預設 3 天
-    interests = data.get("interests", [])  # e.g., ["Food", "Nature"]
 
-    # 從 DB 取出符合興趣的景點
-    pois_query = db.query(POI)
-    if interests:
-        # print(interests)
-        pois_query = pois_query.filter(
-            POI.category.ilike(f"%{interests[0]}%")
-        )  # 可延伸支援多個興趣
-    pois = pois_query.all()
-    random.shuffle(pois)
+@router.get("/api/top_pois", response_model=List[POIOut])
+def get_top_pois(db: Session = Depends(get_db)):
+    pois = db.query(POI).order_by(POI.popularity.desc()).limit(30).all()
+    return pois
 
-    # 平均分配到每天
-    daily_itinerary = [
-        {"day": i + 1, "pois": []} for i in range(days)
-    ]
 
-    for i, poi in enumerate(pois[: days * 3]):  # 每天最多推薦3個景點
-        daily_itinerary[i % days]["pois"].append({
-            "name": poi.name,
-            "area": poi.area,
-            "description": poi.description,
-            "map_url": poi.map_url,
-            "image_url": poi.image_url,
-            "address": poi.address
-        })
-    return {"itinerary": daily_itinerary}
+@router.get("/api/pois/{poi_id}", response_model=POIOut)
+def get_poi_by_id(poi_id: int, db: Session = Depends(get_db)):
+    poi = db.query(POI).filter(POI.id == poi_id).first()
+    if not poi:
+        raise HTTPException(status_code=404, detail="POI not found")
+    return poi
+
+@router.get("/api/pois")
+def get_pois():
+    df = pd.read_csv("data/poi_taipei_tagged.csv")  # 或你實際的資料路徑
+
+    # 將每一筆資料轉換為 dict 並加上 map_url
+    pois = []
+    for _, row in df.iterrows():
+        poi = row.to_dict()
+        poi["map_url"] = generate_map_url(poi["name"])  # ✅ 加上動態 map_url
+        pois.append(poi)
+
+    return JSONResponse(content=pois)
