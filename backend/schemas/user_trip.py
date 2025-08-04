@@ -1,9 +1,6 @@
 from datetime import date
 from typing import List, Any
-
 from pydantic import BaseModel, field_validator
-
-# → 應該有對應的 Pydantic schema
 
 class TripBase(BaseModel):
     start_date : date
@@ -34,9 +31,3 @@ class TripOut(BaseModel):
 
     class Config:
         from_attributes = True
-
-# class TripOut(TripBase):
-#     id      : int
-
-#     class Config:
-#         orm_mode = True     # 讓 FastAPI 可以把 ORM 轉成 Pydantic
