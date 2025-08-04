@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useItinerary } from "../context/ItineraryContext";
 
 const today = new Date().toISOString().split("T")[0];
 
 export default function ItineraryForm({ onSubmit }) {
+  const { setQueryParams } = useItinerary();
   const router = useRouter();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [interests, setInterests] = useState([]);
   const [prefs, setPrefs] = useState([]);
+  const [freeTextPreferences, setFreeTextPreferences] = useState("");
 
   const toggleItem = (list, value, setter) => {
     setter(
@@ -24,15 +27,13 @@ export default function ItineraryForm({ onSubmit }) {
     return;
   }
     const formData = {
-      // start_date: startDate,
-      // end_date: endDate,
       start:      startDate,
       end:        endDate,
       interests,
       prefs,
-      // budget: 'mid', // 你可以額外加上預算選擇元件
+      freeTextPreferences, 
     }
-
+    setQueryParams(formData);  // ✅ 把資料存進 context
     onSubmit(formData)  // ← 將表單資料傳回首頁的父元件
   }
 
@@ -55,6 +56,7 @@ export default function ItineraryForm({ onSubmit }) {
             min={today}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            required
             className="border px-3 py-2 rounded"
           />
         </div>
@@ -106,7 +108,19 @@ export default function ItineraryForm({ onSubmit }) {
             ))}
           </div>
         </div>
-
+        <div className="mb-4">
+          <label htmlFor="freeText" className="block font-medium text-gray-700">
+            Additional Preferences
+          </label>
+          <textarea
+            id="freeText"
+            rows="2"
+            className="w-full mt-1 p-2 border rounded"
+            value={freeTextPreferences}
+            onChange={(e) => setFreeTextPreferences(e.target.value)}
+            placeholder="e.g., No hiking, prefer indoor attractions..."
+          />
+        </div>
         {/* 送出按鈕 */}
         <button
           onClick={handleSubmit}

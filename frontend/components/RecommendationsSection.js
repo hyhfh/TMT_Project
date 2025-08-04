@@ -5,12 +5,42 @@ export default function RecommendationsSection() {
   const [pois, setPois] = useState([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/pois")
-      .then((res) => res.json())
-      .then((data) => setPois(data))
-      .catch((err) => console.error("Error fetching POIs:", err));
-  }, []);
+  fetch("http://localhost:8000/api/top_pois")
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("🔥 Data from /api/top_pois:", data);  // 加這一行
+      setPois(data);
+    })
+    .catch((err) => console.error("Error fetching POIs:", err));
+}, []);
+
+  // useEffect(() => {
+  //   fetch("http://localhost:8000/api/top_pois")
+  //     .then(res => res.json())
+  //     .then(data => {
+  //       setPois(data);
+  //     })
+  //     .catch(error => {
+  //       console.error("Fetching top POIs failed:", error);
+  //     });
+  // }, []);
+
+  // // ▼▼▼▼▼ 請把這行 console.log 加在這裡 ▼▼▼▼▼
+  // console.log("準備渲染前的 pois state:", pois);
+  // // ▲▲▲▲▲ 請把這行 console.log 加在這裡 ▲▲▲▲▲
   
+
+// export default function RecommendationsSection() {
+//   const [pois, setPois] = useState([]);
+//   useEffect(() => {
+//     fetch("http://localhost:8000/api/top_pois") // 請確保這個 URL 是正確的
+//       .then((res) => res.json())
+//       .then((data) => {
+//         console.log("從 API 收到的 Top POIs 資料:", data); // <--- 請加入這一行
+//         setPOIs(data);
+//       })
+//       .catch((err) => console.error("抓取 Top POIs 失敗:", err));
+//   }, []);
 
   return (
     <section>
@@ -18,13 +48,41 @@ export default function RecommendationsSection() {
         Top Recommendations
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {pois.map((poi, index) => (
-          <POICard key={index} poi={poi} />
+        {pois.map((poi) => (
+          <div key={poi.id} className="border rounded-lg shadow-md p-4">
+            <img
+              src={poi.image_url}
+              alt={poi.name}
+              className="w-full h-48 object-cover rounded-t-lg"
+              onError={(e) => { e.target.src = '/images/default.jpeg'; }}
+            />
+            <h3 className="font-bold mt-2">{poi.name}</h3>
+          </div>
         ))}
       </div>
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {pois.map((poi) => ( // 現在 index 已經不需要了，可以移除
+          <POICard key={poi.id} poi={poi} /> // ✨ 使用 poi.id 作為 key
+        ))}
+      </div> */}
     </section>
   );
 }
+
+
+  // useEffect(() => {
+  //   // fetch("http://127.0.0.1:8000/api/pois")
+  //   fetch("http://localhost:8000/api/pois")  // 或者你後端實際監聽的 host
+  //     .then((res) => res.json())
+  //     // .then((data) => setPois(data))
+  //     .then((data) => {
+  //       console.log("Top POIs from backend:", data); // 👈 加這行
+  //       setPois(data);
+  //     })
+
+  //     .catch((err) => console.error("Error fetching POIs:", err));
+  // }, []);
+  
 
 
 // import POICard from "./POICard";
