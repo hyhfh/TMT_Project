@@ -19,3 +19,4 @@ apikey.txt
 *.ipynb
 *.log
 *.tmp
+data/cache_places/
