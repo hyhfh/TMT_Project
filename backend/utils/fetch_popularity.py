@@ -2,8 +2,13 @@ import pandas as pd
 import time
 import requests
 from urllib.parse import quote
+from dotenv import load_dotenv
+import os
 
-API_KEY = "REDACTED_GOOGLE_KEY"  # 替換為你的 API 金鑰
+# API_KEY = ""  # 替換為你的 API 金鑰
+load_dotenv()  # 載入.env檔案
+API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
 SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 
