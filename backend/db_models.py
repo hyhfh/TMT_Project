@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from backend.base import Base
 
+# 資料庫模型，定義 POI 資料表結構的檔案
 
 Base = declarative_base()
 
