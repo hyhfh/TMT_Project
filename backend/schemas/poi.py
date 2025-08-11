@@ -10,6 +10,7 @@ class POIOut(BaseModel):
     lng: Optional[float] = None
     image_url: Optional[str] = None
     popularity: Optional[int] = None
+    map_url: Optional[str] = None
 
     class Config:
         from_attributes = True
