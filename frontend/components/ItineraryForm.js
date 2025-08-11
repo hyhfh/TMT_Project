@@ -5,7 +5,8 @@ import { useItinerary } from "../context/ItineraryContext";
 const today = new Date().toISOString().split("T")[0];
 
 export default function ItineraryForm({ onSubmit }) {
-  const { setQueryParams } = useItinerary();
+  // const { setQueryParams } = useItinerary();
+  const { setQueryParams, setForm, selectedPOIIds } = useItinerary();
   const router = useRouter();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -31,9 +32,11 @@ export default function ItineraryForm({ onSubmit }) {
       end:        endDate,
       interests,
       prefs,
-      freeTextPreferences, 
+      freeTextPreferences,
+      selected_poi_ids: selectedPOIIds,   // ✅ 新增：勾選的 POI IDs 
     }
     setQueryParams(formData);  // ✅ 把資料存進 context
+    setForm(formData);                    // ✅ 讓 /itinerary 可以拿來存 Trip
     onSubmit(formData)  // ← 將表單資料傳回首頁的父元件
   }
 
