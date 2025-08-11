@@ -9,7 +9,8 @@ import { useItinerary } from "../context/ItineraryContext";
 
 export default function Home() {
   const router = useRouter();
-  const { setForm } = useItinerary();
+  // const { setForm } = useItinerary();
+  const { setForm, selectedPOIIds, toggleSelectedPOI } = useItinerary();
   const [topPOIs, setTopPOIs] = useState([]);
   const [loading, setLoading] = useState(true);
   const handleSubmit = (formData) => {
@@ -34,7 +35,6 @@ export default function Home() {
     }
   };
   fetchTopPOIs();
-  setLoading(false);  // loading
 }, []);
 
   return (
@@ -51,22 +51,35 @@ export default function Home() {
           </div>
         </div>
         <section className="mt-8">
-          <h2 className="text-xl font-bold text-green-800 mb-2">Top Recommendations</h2>
+          <h2 className="text-2xl font-bold text-green-800 mb-2">Top Recommendations</h2>
+          <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
+            <div>Selected: <span className="font-semibold">{selectedPOIIds.length}</span></div>
+            {selectedPOIIds.length > 0 && (
+              <button className="underline" onClick={() => selectedPOIIds.forEach(toggleSelectedPOI)}>
+                Clear
+              </button>
+            )}
+          </div>
+
 
           {loading ? (
             <p className="text-gray-500">Loading recommendations...</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div> */}
               {topPOIs.map((poi, index) => (
                 <POICard
                   key={index}
                   poi={{
                     id: poi.id,
                     name: poi.name,
-                    popularity: poi.popularity,
+                    // popularity: poi.popularity,
                     image_url: poi.image_url,
                   }}
                   showIntro={false}
+                  selectable={true}                                   // ✅ 讓卡片顯示 checkbox
+                  selected={selectedPOIIds.includes(poi.id)}          // ✅ 是否已被勾選
+                  onToggleSelect={toggleSelectedPOI}                  // ✅ 勾/取消時更新 context
                 />
               ))}
             </div>
