@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import user, trip, poi, recommendation
-from backend.database import engine  # 使用統一的 database.py
+from backend.routers import user, trip, poi, recommendation, explain
+from backend.database import engine 
 from backend.base import Base
-from backend import models  # 載入模型（為了 Base.metadata.create_all 建表）
 
 # 自動建立資料表
 Base.metadata.create_all(bind=engine)
@@ -25,3 +24,4 @@ app.include_router(user.router)
 app.include_router(trip.router)
 app.include_router(poi.router)
 app.include_router(recommendation.router)
+app.include_router(explain.router)
