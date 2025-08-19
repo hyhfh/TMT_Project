@@ -77,9 +77,7 @@ export default function ExplorePage() {
   );
 }
 
-/* ----------------------- */
-/*   卡片元件（與詳情頁同風格）  */
-/* ----------------------- */
+/* POICard */
 function POICard({ poi }) {
   const realId = poi?.id ?? poi?.poi_id ?? poi?._id ?? null;
   const href = realId ? `/poi/${realId}` : `/poi/${encodeURIComponent(poi.name)}`;
@@ -103,12 +101,18 @@ function POICard({ poi }) {
       {/* 圖片區 */}
       <div className="relative w-full aspect-[16/9] overflow-hidden">
         <img
-          src={poi.image_url || "/placeholder.jpg"}
-          alt={poi.name}
+          src={poi.image_url || "/images/poi-fallback.jpg"}
+          alt={poi.name || "POI image"}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
+          onError={(e) => {
+            // 避免無限觸發
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/images/poi-fallback.jpg";
+          }}
         />
       </div>
-
+      
       {/* 內容區 */}
       <div className="p-5">
         <h2 className="text-xl font-semibold text-green-800 leading-snug">
@@ -140,18 +144,15 @@ function POICard({ poi }) {
           <div className="mt-auto pt-4 flex justify-between items-center">
             <Link
               href={href}
-              // className="px-3 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50 transition"
               className="text-sm text-gray-600 underline"
             >
               Read more
             </Link>
-
             {poi.map_url && (
               <a
                 href={poi.map_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                // className="px-3 py-2 rounded-xl bg-green-600 text-white text-sm hover:bg-green-700 transition shadow"
                 className="px-3 py-2 rounded-xl border border-gray-300 text-sm bold text-green-600 transition"
               >
                 Open in Google Maps
@@ -167,92 +168,3 @@ function POICard({ poi }) {
 function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
-
-// import Navbar from "../components/Navbar";
-// import { useEffect, useState } from 'react';
-// import Link from "next/link";
-
-// export default function ExplorePage() {
-//   const [pois, setPois] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     (async () => {
-//       try {
-//         const res = await fetch('http://localhost:8000/api/pois');
-//         const data = await res.json();
-//         // 先印出來看欄位長什麼樣（第一次除錯很重要）
-//         console.log("POIs sample:", data?.[0]);
-//         setPois(Array.isArray(data) ? data : []);
-//       } catch (e) {
-//         console.error("載入景點失敗", e);
-//       } finally {
-//         setLoading(false);
-//       }
-//     })();
-//   }, []);
-
-//   if (loading) {
-//     return (
-//       <div>
-//         <Navbar />
-//         <div className="p-6">loading...</div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div>
-//       <Navbar />
-//       <div className="p-6">
-//         <h1 className="text-2xl font-bold text-green-800 mb-4">
-//           Explore Taipei City Attractions
-//         </h1>
-
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//           {pois.map((poi, index) => {
-//             // 你資料中真正的 id 欄位可能叫 id / poi_id / _id 等，這裡做個容錯
-//             const realId = poi?.id ?? poi?.poi_id ?? poi?._id ?? null;
-//             // 如果沒有 id，就用 name 當路由參數（搭配詳細頁用 by_name 查詢）
-//             const href = realId
-//               ? `/poi/${realId}`
-//               : `/poi/${encodeURIComponent(poi.name)}`;
-
-//             return (
-//               <div key={realId ?? `${poi.name}-${index}`} className="border rounded-xl shadow p-4 flex flex-col justify-between">
-//                 {poi.image_url && (
-//                   <img
-//                     src={poi.image_url}
-//                     alt={poi.name}
-//                     className="w-full h-48 object-cover rounded-lg mb-3"
-//                   />
-//                 )}
-//                 <h2 className="text-xl font-semibold text-green-800">{poi.name}</h2>
-//                 {poi.introduction && (
-//                   <p className="text-gray-700 text-sm mt-1 mb-2 line-clamp-3">{poi.introduction}</p>
-//                 )}
-
-//                 <div className="flex justify-between items-center mt-2">
-//                   <Link href={href} className="text-sm text-green-600 underline">
-//                     Read more
-//                   </Link>
-
-//                   {poi.map_url && (
-//                     <a
-//                       href={poi.map_url}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="text-sm text-blue-600 underline"
-//                     >
-//                       View on Map
-//                     </a>
-//                   )}
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
