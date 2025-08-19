@@ -1,18 +1,18 @@
 from fastapi import FastAPI, Query, APIRouter, Request, Depends, HTTPException
-import csv, requests, random
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.db_models import POI
-import pandas as pd
-from pathlib import Path
 from fastapi.encoders import jsonable_encoder
-import math
 from urllib.parse import quote
 from backend.schemas.poi import POIOut
-import urllib.parse
-from typing import List
-from backend.utils.map import generate_map_url  # ✅ 導入
+from typing import Optional, List
+from backend.utils.map import generate_map_url  
+from dotenv import load_dotenv
+import os, requests, math
+from datetime import datetime, timedelta, timezone
+from collections import Counter, defaultdict
+
 
 router = APIRouter()
 
@@ -36,11 +36,15 @@ def serialize_poi(p: POI) -> dict:
         "map_url": generate_map_url(p.name) if p.name else "",
     }
 
-# 回傳資料庫中所有景點的列表（一般是分頁或全部）。給前端「探索頁」或「全部景點」用。
 @router.get("/api/pois", response_model=List[POIOut])
-def list_pois(db: Session = Depends(get_db)):
-    pois = db.query(POI).all()
-    return [serialize_poi(p) for p in pois]
+def list_pois(
+    ids: Optional[str] = Query(None, description="逗號分隔的 id，如 1,2,3"),
+    db: Session = Depends(get_db),
+):
+    if ids:
+        id_list = [int(x) for x in ids.split(",") if x.isdigit()]
+        return db.query(POI).filter(POI.id.in_(id_list)).all()
+    return db.query(POI).all()
 
 # 根據景點 id 回傳該景點的詳細資料。給前端 /poi/{id} 詳細頁用。
 @router.get("/api/pois/{poi_id}", response_model=POIOut)
@@ -50,7 +54,6 @@ def get_poi_by_id(poi_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="POI not found")
     return serialize_poi(poi)
 
-# 可選：若前端路由用 name 當參數，可用這條
 # 根據景點名稱查詢詳細資料（如果網址參數不是數字，就用這個找）
 @router.get("/api/pois/by_name", response_model=POIOut)
 def get_poi_by_name(name: str = Query(...), db: Session = Depends(get_db)):
@@ -59,19 +62,13 @@ def get_poi_by_name(name: str = Query(...), db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="POI not found")
     return serialize_poi(poi)
 
-# ---------------------------
-# 熱門 POIs（保留）
-# ---------------------------
-# @router.get("/api/top_pois", response_model=List[POIOut])
-# def get_top_pois(db: Session = Depends(get_db)):
-#     pois = db.query(POI).order_by(POI.popularity.desc()).limit(30).all()
-#     return [serialize_poi(p) for p in pois]
+# ---熱門 POIs
 @router.get("/api/top_pois", response_model=List[POIOut])
 def top_pois(db: Session = Depends(get_db)):
     rows = (db.query(POI).order_by(POI.popularity.desc()).limit(30).all())
     return [
         {
-            "id": r.id,                    # ← 必須有
+            "id": r.id,                   
             "name": r.name,
             "image_url": r.image_url,
             "popularity": r.popularity,
@@ -80,29 +77,10 @@ def top_pois(db: Session = Depends(get_db)):
         for r in rows
     ]
 
-# ---------------------------
-# （可留作示範）itinerary 範例
-# ---------------------------
-@router.get("/api/itinerary")
-def generate_itinerary(
-    start: str = Query(...),
-    end: str = Query(...),
-    interests: str = Query(""),
-    prefs: str = Query(""),
-):
-    return {
-        "start": start,
-        "end": end,
-        "interests": interests.split(",") if interests else [],
-        "preferences": prefs.split(",") if prefs else [],
-        "schedule": [],
-    }
-
-# ---------------------------
-# 天氣（保留原本的）
-# ---------------------------
-
-WEATHER_API_KEY = "252d2b3be8b1f208ec09327f10cdb1d1" 
+# ---天氣
+load_dotenv()  # 載入.env檔案
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+TZ_TAIPEI = timezone(timedelta(hours=8))
 
 @router.get("/api/weather")
 def get_current_weather():
@@ -124,124 +102,84 @@ def get_weather_forecast():
     response = requests.get(url)
     return response.json()
 
-# @router.get("/api/pois")
-# def get_pois(db: Session = Depends(get_db)):
-#     pois = db.query(POI).all()
-#     result = []
-#     for p in pois:
-#         # 1) 把所有可能是 NaN / +∞ / -∞ 的浮點數都檢查一下
-#         lat = p.lat   if (p.lat   is not None and math.isfinite(p.lat))   else None
-#         lng = p.lng   if (p.lng   is not None and math.isfinite(p.lng))   else None
-#         # 組成 Google Maps 搜尋連結
-#         # map_url = f"https://www.google.com/maps/search/?api=1&query={quote(p.name)}" if p.name else ""
-#         map_url = f"https://www.google.com/maps/search/?api=1&query={quote(p.name + ' 台北市')}" if p.name else ""
-#         pop = p.popularity or 0  # 若 popularity 是 None，就給 0 當預設值
+@router.get("/weather")
+def get_daily_weather(
+    start: str = Query(..., pattern=r"\d{4}-\d{2}-\d{2}"),
+    end: str   = Query(..., pattern=r"\d{4}-\d{2}-\d{2}")
+):
+    """
+    以 OpenWeather 5-day/3-hour 預報為基礎，彙整成「每日」資料。
+    回傳格式：
+    {
+      "city": "Taipei",
+      "days": [
+        {"date":"YYYY-MM-DD","temp_min":27,"temp_max":34,"icon":"10d","description":"light rain","pop":60},
+        ...
+      ]
+    }
+    """
+    city = "Taipei"
+    url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={WEATHER_API_KEY}&units=metric"
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
 
-#         result.append({
-#             "id":           p.id,
-#             "name":         p.name,
-#             "introduction": p.introduction,
-#             "address":      p.address,
-#             "lat":          lat,
-#             "lng":          lng,
-#             "image_url":    p.image_url,
-#             "attraction":   p.attraction,
-#             "food":         p.food,
-#             "nature":       p.nature,
-#             "culture":      p.culture,
-#             "shopping":     p.shopping,
-#             # "popularity":   pop,
-#             "popularity":   p.popularity,
-#             "map_url":      map_url,    # ← 新增這行
-#         })
-#     # 直接 return list，讓 FastAPI 幫你做 JSON 編碼
-#     return result
+    # 解析查詢區間（含首尾日）
+    start_dt = datetime.fromisoformat(start)
+    end_dt = datetime.fromisoformat(end)
 
-# # 即時天氣 路由
-# WEATHER_API_KEY = "252d2b3be8b1f208ec09327f10cdb1d1" 
+    # 依照台北當地日把 3 小時的切片分組
+    buckets = defaultdict(list)
+    for it in data.get("list", []):
+        dt_local = datetime.utcfromtimestamp(it["dt"]).astimezone(TZ_TAIPEI)
+        date_str = dt_local.strftime("%Y-%m-%d")
+        day_dt = datetime.fromisoformat(date_str)
+        if day_dt < start_dt or day_dt > end_dt:
+            continue
+        buckets[date_str].append(it)
 
-# @router.get("/api/weather")
-# def get_current_weather():
-#     city = "Taipei"
-#     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
-#     response = requests.get(url)
-#     data = response.json()
-    
-#     # 新增這一行：取得天氣 icon 編號
-#     icon = data["weather"][0]["icon"]
-    
-#     return {
-#         "temp": data["main"]["temp"],
-#         "description": data["weather"][0]["description"],
-#         "icon": icon  # 把 icon 加進回傳內容
-#         # "icon": data["weather"][0]["icon"]
-#     }
-    
-# @router.get("/api/weather_forecast")
-# def get_weather_forecast():
-#     city = "Taipei"
-#     url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={WEATHER_API_KEY}&units=metric"
-#     response = requests.get(url)
-#     return response.json()
+    days = []
+    for date_str, items in sorted(buckets.items()):
+        temps, tmins, tmaxs, pops = [], [], [], []
+        pick_noon, noon_diff = None, None
+        icons, descs = [], []
+        
+        for it in items:
+            m = it.get("main", {})
+            t = m.get("temp")
+            if t is not None: temps.append(t)
+            tmin = m.get("temp_min", t)
+            tmax = m.get("temp_max", t)
+            if tmin is not None: tmins.append(tmin)
+            if tmax is not None: tmaxs.append(tmax)
 
+            pops.append(it.get("pop", 0.0))  # 0~1
 
-# # 後端（FastAPI）＋機票連結思路
-# # 2‑1  新增 /api/itinerary
-# # 簡化範例：直接回傳收到的參數
-# @router.get("/api/itinerary")
-# def generate_itinerary(
-#     start: str = Query(...),
-#     end: str = Query(...),
-#     interests: str = Query(""),
-#     prefs: str = Query(""),
-# ):
-#     """
-#     真正專題裡，你可以：
-#     1. 轉成 datetime 計算停留天數
-#     2. 用 interests / prefs 做 Content‑Based 推薦
-#     3. 回傳每天建議景點（可從 poi_taipei.csv 選擇）
-#     """
-#     return {
-#         "start": start,
-#         "end": end,
-#         "interests": interests.split(",") if interests else [],
-#         "preferences": prefs.split(",") if prefs else [],
-#         "schedule": [
-#             # 這裡放每天行程
-#         ],
-#     }
+            w = (it.get("weather") or [{}])[0]
+            icons.append(w.get("icon"))
+            descs.append(w.get("description"))
 
-# @router.get("/api/top_pois", response_model=List[POIOut])
-# def get_top_pois(db: Session = Depends(get_db)):
-#     pois = db.query(POI).order_by(POI.popularity.desc()).limit(30).all()
-#     return pois
+            # 挑最接近中午的切片，作為代表圖示/描述
+            dt_local = datetime.utcfromtimestamp(it["dt"]).astimezone(TZ_TAIPEI)
+            diff = abs((dt_local.hour + dt_local.minute/60) - 12)
+            if noon_diff is None or diff < noon_diff:
+                noon_diff = diff
+                pick_noon = w
 
+        # 代表圖示/描述：以中午切片為主，沒有就取眾數
+        icon = (pick_noon or {}).get("icon") or (Counter([i for i in icons if i]).most_common(1)[0][0] if icons else "01d")
+        description = (pick_noon or {}).get("description") or (Counter([d for d in descs if d]).most_common(1)[0][0] if descs else "")
+        temp_min = round(min(tmins) if tmins else min(temps)) if (tmins or temps) else None
+        temp_max = round(max(tmaxs) if tmaxs else max(temps)) if (tmaxs or temps) else None
+        pop_pct  = round((sum(pops)/len(pops) if pops else 0) * 100)  # ← 轉百分比
 
-# @router.get("/api/pois/{poi_id}", response_model=POIOut)
-# def get_poi_by_id(poi_id: int, db: Session = Depends(get_db)):
-#     poi = db.query(POI).filter(POI.id == poi_id).first()
-#     if not poi:
-#         raise HTTPException(status_code=404, detail="POI not found")
-#     return poi
+        days.append({
+            "date": date_str,
+            "temp_min": int(temp_min) if temp_min is not None else None,
+            "temp_max": int(temp_max) if temp_max is not None else None,
+            "icon": icon,                 # 例如 "10d"
+            "description": description,   # 例如 "light rain"
+            "pop": pop_pct                # 0~100 的整數
+        })
 
-
-
-
-#-------@router.get("/api/pois")  # 從 CSV 讀資料
-# 這個會覆蓋上面的「資料庫版」。
-# 若你想保留做測試，請改成：
-# @router.get("/api/pois_csv")
-# 然後對前端用 /api/pois_csv 來讀 CSV，不要跟 /api/pois 混用。
-
-# @router.get("/api/pois")
-# def get_pois():
-#     df = pd.read_csv("data/poi_taipei_tagged.csv")  # 或你實際的資料路徑
-
-#     # 將每一筆資料轉換為 dict 並加上 map_url
-#     pois = []
-#     for _, row in df.iterrows():
-#         poi = row.to_dict()
-#         poi["map_url"] = generate_map_url(poi["name"])  # ✅ 加上動態 map_url
-#         pois.append(poi)
-
-#     return JSONResponse(content=pois)
+    return {"city": "Taipei", "days": days}
