@@ -7,22 +7,19 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # 載入.env檔案
+load_dotenv()  
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-# 重新建立資料表
 Base.metadata.drop_all(bind=engine, tables=[POI.__table__])
 Base.metadata.create_all(bind=engine, tables=[POI.__table__])
-print("✅ Drop & Create POI table")
+print("Drop & Create POI table")
 
-# 載入 CSV
 csv_path = Path(__file__).parent.parent / "data" / "poi_taipei_tagged.csv"
 df = pd.read_csv(csv_path, encoding="utf-8")
 
-# 寫入資料
 for _, row in df.iterrows():
     poi = POI(
         name=row["name"],
@@ -39,6 +36,5 @@ for _, row in df.iterrows():
         popularity=int(row["popularity"]) if "popularity" in row and pd.notna(row["popularity"]) else 0,
     )
     session.add(poi)
-
 session.commit()
-print("✅ 已寫入所有 POI")
+print("POI done")

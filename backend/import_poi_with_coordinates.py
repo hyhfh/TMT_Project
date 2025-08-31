@@ -1,7 +1,6 @@
 import csv
 from sqlalchemy.orm import Session
 from db_models import POI, engine
-from backend.base import Base
 
 csv_file = "data/poi_taipei_tagged.csv"
 
@@ -22,5 +21,4 @@ with open(csv_file, newline='', encoding='utf-8') as file:
             )
             session.add(poi)
         session.commit()
-
 print("Successfully.")

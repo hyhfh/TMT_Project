@@ -7,10 +7,10 @@ class TripBase(BaseModel):
     end_date   : date
     interests  : List[str] = []
     preferences: List[str] = []
-    schedule   : Any       # 可依實際結構改型別
+    schedule   : Any       
 
 class TripCreate(TripBase):
-    pass                    # 建立時跟 TripBase 相同即可
+    pass                    
 
 class TripOut(BaseModel):
     id: int
