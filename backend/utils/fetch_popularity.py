@@ -5,10 +5,8 @@ from urllib.parse import quote
 from dotenv import load_dotenv
 import os
 
-# API_KEY = ""  # 替換為你的 API 金鑰
-load_dotenv()  # 載入.env檔案
+load_dotenv()  
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-
 SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 
@@ -18,19 +16,16 @@ def fetch_popularity_for_poi(name: str):
         "key": API_KEY
     }
     res = requests.get(SEARCH_URL, params=params).json()
-    print(f"[🔍SEARCH] {name}: {res}")  # ✅ 印出搜尋結果
+    print(f"[SEARCH] {name}: {res}") 
     if res["status"] != "OK":
-        return 0  # 若無結果，設為 0
-
+        return 0  
     place_id = res["results"][0]["place_id"]
     res_detail = requests.get(DETAILS_URL, params={"place_id": place_id, "key": API_KEY, "fields": "user_ratings_total,rating"}).json()
     if res_detail["status"] != "OK":
         return 0
-
     details = res_detail["result"]
     rating = details.get("rating", 0)
     count = details.get("user_ratings_total", 0)
-
     return int(rating * count)
 
 def update_csv_popularity():
@@ -40,10 +35,9 @@ def update_csv_popularity():
         popularity = fetch_popularity_for_poi(name)
         df.at[i, "popularity"] = popularity
         print(f"{name}: {popularity}")
-        time.sleep(1)  # 避免過快請求 Google API 被封鎖
-
+        time.sleep(1)  
     df.to_csv("data/poi_taipei_tagged.csv", index=False)
-    print("✅ popularity 欄位更新完成")
+    print("popularity done")
 
 if __name__ == "__main__":
     update_csv_popularity()
