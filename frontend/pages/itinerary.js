@@ -3,7 +3,6 @@ import Navbar from '../components/Navbar'
 import POICard from '../components/POICard'
 import { useItinerary } from '../context/ItineraryContext'
 
-// 從 LLM 的完整文字中抽出「explanation:」起點後的內容，若沒有就回傳原文（皆去除前後空白）
 function extractExplanation(text) {
   if (!text) return ''
   const lower = text.toLowerCase()
@@ -11,7 +10,7 @@ function extractExplanation(text) {
   const sliced = idx >= 0 ? text.slice(idx) : text
   return sliced.trim()
 }
-// Day index -> YYYY/MM/DD 顯示（依 form.start 推算），（給使用者看的行程日期）
+
 function formatFromStart(startISO, dayIndex) {
   if (!startISO) return null
   const d = new Date(startISO)
@@ -21,7 +20,7 @@ function formatFromStart(startISO, dayIndex) {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}/${m}/${day}`
 }
-// 由 form.start + offsetDays 取得 YYYY-MM-DD（給天氣 map 用）
+
 function isoFromStart(startISO, dayIndex) {
   if (!startISO) return null
   const d = new Date(`${startISO}T00:00:00`)
@@ -31,13 +30,13 @@ function isoFromStart(startISO, dayIndex) {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
-// 取單一 POI 詳情（若你有批次 API：/api/pois?ids=1,2,3，請改成批次以節省請求數）
+
 async function fetchPoiDetail(id) {
   const res = await fetch(`http://localhost:8000/api/pois/${id}`)
   if (!res.ok) throw new Error(`poi ${id} not found`)
   return res.json()
 }
-// 天氣膠囊（小圓角 pill）
+
 function WeatherPill({ day, loading }) {
   if (loading) {
     return (
@@ -60,40 +59,22 @@ function WeatherPill({ day, loading }) {
 
 export default function ItineraryPage() {
   const { queryParams, form } = useItinerary()
-  
-  // LLM 行程與說明
   const [llmPlan, setLlmPlan] = useState(null)
   const [explanation, setExplanation] = useState('') 
-  const [fallbackText, setFallbackText] = useState('') // 如果 LLM 沒給 JSON，就顯示全文
- 
-  // 以 id 為 key 的 POI 詳情快取（name, image_url, popularity, map_url ...）
-  const [poiMap, setPoiMap] = useState({})  // POI 詳情快取
+  const [fallbackText, setFallbackText] = useState('') 
+  const [poiMap, setPoiMap] = useState({})  
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
-
-  // 天氣 state
-  const [wxMap, setWxMap] = useState({}) // {'YYYY-MM-DD': {temp_min,temp_max,icon,description,pop}}
+  const [wxMap, setWxMap] = useState({}) 
   const [wxLoading, setWxLoading] = useState(false)
-
-  // 展開/收合：key = day number（1-based）
   const [expandedDays, setExpandedDays] = useState({});
-  // 預設「先顯示幾張卡」，想改成 6、9 或無上限（Infinity）都可以
   const MAX_PER_DAY = 3;
-
-  // 序號：確保只採用「最後一次」請求結果
   const reqSeq = useRef(0);
   const lastKeyRef = useRef(null);
 
-// 1) 抓取行程主流程：
-// - 依 queryParams 或 form 組成 payload（避免 Strict Mode 重複、相同參數不重打）
-// - 只採用「最後一次」請求結果（reqSeq + cancelled 保護）
-// - 呼叫 /recommend_itinerary → normalize 統一成 {days,tips,explanation,itinerary_text}
-// - 若 days 有值才覆蓋 llmPlan；否則僅設 fallbackText/explanation（避免洗掉既有行程）
-// - finally 階段統一落下 setLoading(false)
 useEffect(() => {
-  // 1. 準備 payload：有 queryParams 就用，否則用 form
   const basePayload =
     (queryParams && Object.keys(queryParams || {}).length > 0)
       ? queryParams
@@ -108,16 +89,13 @@ useEffect(() => {
 
   if (!basePayload?.start || !basePayload?.end) return;
 
-  // 2. 相同參數不重打（避免 Strict Mode/多次 render 造成重複請求）
   const key = JSON.stringify(basePayload);
   if (lastKeyRef.current === key) return;
   lastKeyRef.current = key;
 
-  // 3. 只接受最新回應
   const myId = ++reqSeq.current;
   let cancelled = false;
 
-  // 小工具：把任何回傳 normalize 成 { days: [...], tips, explanation, itinerary_text }
   const normalize = (data) => {
     const days =
       (Array.isArray(data?.days) && data.days) ||
@@ -151,16 +129,13 @@ useEffect(() => {
       console.log('[itinerary] raw:', data);
       console.log('[itinerary] normalized days:', norm.days.length, 'req', myId);
 
-      // 過期或已卸載就丟掉
       if (cancelled || myId !== reqSeq.current) return;
 
-      // 4. 只有在 days 有內容時才覆蓋 llmPlan；否則完全忽略（不清空）
       if (norm.days.length > 0) {
         setLlmPlan({ days: norm.days, tips: norm.tips });
         setExplanation(norm.explanation);
-        setFallbackText(norm.itinerary_text); // 有就留著，沒有也無妨
+        setFallbackText(norm.itinerary_text); 
       } else if (norm.itinerary_text) {
-        // 有純文字就顯示，但不要動 llmPlan（避免把有資料的行程洗掉）
         setFallbackText(norm.itinerary_text);
         setExplanation(norm.explanation);
       } else {
@@ -189,43 +164,34 @@ useEffect(() => {
   JSON.stringify(form?.selectedPOIIds || []),
 ]);
 
-
-  // 2) 撈該行程用到的 POI 詳情，取這份行程所用到的所有 POI 詳情（依 id 去查，並快取）
   useEffect(() => {
     async function loadPOIs() {
       if (!llmPlan?.days?.length) return
-      // 集合所有 item 的 id
       const ids = new Set()
       for (const day of llmPlan.days) {
         for (const b of (day.blocks || [])) {
           for (const it of (b.items || [])) {
 
             if (it.id) {
-              const m = String(it.id).match(/\d+/)    // 只取數字
-              const clean = m ? m[0] : String(it.id)  // 沒有數字就用原字串
+              const m = String(it.id).match(/\d+/)    
+              const clean = m ? m[0] : String(it.id) 
               ids.add(clean)
             }
 
           }
         }
       }
-      // 過濾已快取的
       const need = Array.from(ids).filter(id => !poiMap[id])
       if (need.length === 0) return
-
       const newMap = {}
-
       for (const id of need) {
-        // 先把 id 變成純數字（取不到就用原字串），只取數字，再轉字串
         const numericId = String(id).match(/\d+/)?.[0] || String(id)
-
         try {
-          const data = await fetchPoiDetail(numericId) // 用純數字去打 /api/pois/{id}
-          newMap[numericId] = data                     // poiMap 的 key 也用同一個「字串 id」
-
+          const data = await fetchPoiDetail(numericId) 
+          newMap[numericId] = data                     
         } catch (e) {
           console.warn('poi fetch failed:', id, e)
-          newMap[numericId] = {                        // 同上
+          newMap[numericId] = {                      
             id: numericId,
             name: `#${numericId}`,
             popularity: 0,
@@ -238,10 +204,8 @@ useEffect(() => {
       setPoiMap(prev => ({ ...prev, ...newMap }))
     }
     loadPOIs()
-  }, [llmPlan]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [llmPlan]) 
 
-
-  // 3) 轉成卡片資料（先宣告，下面的 useEffect 會用到它）
   const cardDays = useMemo(() => {
     if (!llmPlan || !Array.isArray(llmPlan.days)) return [];
     const days = llmPlan.days ?? [];
@@ -269,12 +233,9 @@ useEffect(() => {
     return out;
   }, [llmPlan, poiMap, expandedDays]);
 
-
-  // 4) 回退機制：只有當第一次 LLM 沒給 explanation 時，才呼叫 /explain_itinerary
   useEffect(() => {
     async function refreshExplanation() {
       if (!cardDays || cardDays.length === 0) return;
-      // 若第一次 LLM 已經給了解釋，就直接用它（不再打第二次端點）
       if (explanation && String(explanation).trim().length > 0) return;
 
       const plan = cardDays.map(d => ({
@@ -298,27 +259,20 @@ useEffect(() => {
     refreshExplanation();
   }, [JSON.stringify(cardDays), explanation]);
 
-
-  // 5) 天氣 ===== 新增：抓天氣（優先打後端 /weather，失敗再打前端 /api/weather） =====
   useEffect(() => {
     async function fetchWeather() {
       if (!form?.start || !form?.end) return
       setWxLoading(true)
       try {
         const qs = new URLSearchParams({ start: form.start, end: form.end }).toString()
-
-        // 先打 FastAPI
         let resp = await fetch(`http://localhost:8000/weather?${qs}`)
-        // 若後端沒有此路由，退回打 Next.js API
         if (resp.status === 404) {
           resp = await fetch(`/api/weather?${qs}`)
         }
         const data = await resp.json()
         if (!resp.ok) throw new Error(data?.detail || `Weather HTTP ${resp.status}`)
-
         const map = {}
         for (const d of (data.days || [])) {
-          // 期待後端回 date: YYYY-MM-DD；若不是，可在此調整
           map[d.date] = d
         }
         setWxMap(map)
@@ -332,8 +286,6 @@ useEffect(() => {
     fetchWeather()
   }, [form?.start, form?.end])
 
-
-  // 6) Save Trip
   async function handleSaveTrip() {
     try {
       setSaving(true)
@@ -351,7 +303,7 @@ useEffect(() => {
         preferences: form?.prefs ?? [],
       }
 
-      const token = localStorage.getItem('token') // 取 JWT
+      const token = localStorage.getItem('token') 
       const res = await fetch('http://localhost:8000/trips', {
         method: 'POST',
         headers: {
@@ -360,7 +312,6 @@ useEffect(() => {
         },
         body: JSON.stringify(payload),
       })
-
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSaveMsg('Saved!')
     } catch (e) {
@@ -381,24 +332,18 @@ useEffect(() => {
         </h1>
         {loading && <p>Loading…</p>}
         {error && <p className="text-red-600">{error}</p>}
-
-        {/* Fallback：LLM 沒給 JSON，就直接顯示原文（你也可以不顯示） */}
         {!loading && !error && !llmPlan && !!fallbackText && (
           <pre className="whitespace-pre-wrap text-sm bg-gray-50 border rounded p-4">
             {fallbackText}
           </pre>
         )}
-                
         {!loading && !error && (llmPlan || fallbackText) && (
           <div className="space-y-10">
             {cardDays.map((d) => {
-              // 標題顯示用
               const labelDate =
                 d.date ? d.date : formatFromStart(form?.start, d.day - 1)
-              // 天氣索引用（YYYY-MM-DD）
               const isoDate =
                 d.date ? d.date : isoFromStart(form?.start, d.day - 1)
-              
               return (
                 <section key={d.day}>
                   <div className="flex items-center justify-between mb-3">
@@ -424,8 +369,6 @@ useEffect(() => {
                 </section>
               )
             })}
-
-            {/* Save Trip */}
             <div className="text-center">
               <button
                 onClick={handleSaveTrip}
@@ -434,12 +377,10 @@ useEffect(() => {
               >
                 {saving ? 'Saving…' : 'Save Trip'}
               </button>
-              
               {!!saveMsg && (
                 <div className="mt-2 text-sm bold text-gray-600">{saveMsg}</div>
               )}
             </div>
-
             {!!explanation && (
               <div className="mt-6 p-5 rounded-xl bg-green-50 border border-green-200">
                 <h3 className="font-semibold text-green-800 mb-1">Why this plan</h3>

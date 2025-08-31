@@ -18,7 +18,6 @@ export default function POIDetail() {
         const url = isNumericId
           ? `http://localhost:8000/api/pois/${id}`
           : `http://localhost:8000/api/pois/by_name?name=${encodeURIComponent(id)}`;
-        // const url = `http://localhost:8000/api/pois/${id}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("POI not found");
         const data = await res.json();
@@ -33,7 +32,6 @@ export default function POIDetail() {
 
   const tags = useMemo(() => {
     if (!poi) return [];
-    // 你的資料欄位：attraction/food/nature/culture/shopping（值為字串或空字串）
     const possible = ["attraction", "food", "nature", "culture", "shopping"];
     return possible.filter(k => !!poi[k]).map(k => k[0].toUpperCase() + k.slice(1));
   }, [poi]);
@@ -47,7 +45,6 @@ export default function POIDetail() {
     }
   }, [poi]);
 
-  // --- UI 狀態 ---
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -80,7 +77,6 @@ export default function POIDetail() {
       </Head>
 
       <div className="max-w-6xl mx-auto p-6">
-        {/* 上方操作列 */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => router.back()}
@@ -90,17 +86,13 @@ export default function POIDetail() {
           </button>
         </div>
 
-        {/* 標題 */}
         <h1 className="text-3xl md:text-4xl font-extrabold text-green-800 tracking-tight">
           {poi.name}
         </h1>
 
-        {/* 兩欄佈局 */}
         <div className="grid md:grid-cols-3 gap-8 mt-6">
-          {/* 左：大圖 + 介紹 */}
           <div className="md:col-span-2">
             <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-lg">
-              {/* 若後端 image_url 為空，顯示柔和底色占位 */}
               {poi.image_url ? (
                 <img
                   src={poi.image_url}
@@ -112,7 +104,6 @@ export default function POIDetail() {
               )}
             </div>
 
-            {/* 標籤 */}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-4">
                 {tags.map((t) => (
@@ -126,7 +117,6 @@ export default function POIDetail() {
               </div>
             )}
 
-            {/* 介紹文字 */}
             {poi.introduction && (
               <p className="mt-6 leading-7 text-gray-800 text-lg">
                 {poi.introduction}
@@ -134,7 +124,6 @@ export default function POIDetail() {
             )}
           </div>
 
-          {/* 右：資訊卡片 */}
           <aside className="space-y-4">
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Info</h2>

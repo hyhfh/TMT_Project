@@ -37,7 +37,7 @@ export default function Register() {
         body: JSON.stringify({ email, password, name }),
       });
 
-      console.log("📝 Sending register payload:", {
+      console.log("Sending register payload:", {
         email,
         password,
       });

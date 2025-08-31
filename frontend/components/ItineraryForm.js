@@ -5,7 +5,6 @@ import { useItinerary } from "../context/ItineraryContext";
 const today = new Date().toISOString().split("T")[0];
 
 export default function ItineraryForm({ onSubmit }) {
-  // const { setQueryParams } = useItinerary();
   const { setQueryParams, setForm, selectedPOIIds } = useItinerary();
   const router = useRouter();
   const [startDate, setStartDate] = useState("");
@@ -33,11 +32,11 @@ export default function ItineraryForm({ onSubmit }) {
       interests,
       prefs,
       freeTextPreferences,
-      selected_poi_ids: selectedPOIIds,   // ✅ 新增：勾選的 POI IDs 
+      selected_poi_ids: selectedPOIIds,   
     }
-    setQueryParams(formData);  // ✅ 把資料存進 context
-    setForm(formData);                    // ✅ 讓 /itinerary 可以拿來存 Trip
-    onSubmit(formData)  // ← 將表單資料傳回首頁的父元件
+    setQueryParams(formData);  
+    setForm(formData);                   
+    onSubmit(formData) 
   }
 
   return (
@@ -50,8 +49,7 @@ export default function ItineraryForm({ onSubmit }) {
       "
     >
       <div className="flex flex-col gap-4 text-sm">
-
-        {/* 日期選擇 */}
+        {/* date */}
         <div className="flex flex-col gap-2">
           <label className="text-lg font-semibold text-gray-600">Start Date</label>
           <input
@@ -63,7 +61,6 @@ export default function ItineraryForm({ onSubmit }) {
             className="border px-3 py-2 rounded"
           />
         </div>
-
         <div className="flex flex-col gap-2">
           <label className="text-lg font-semibold text-gray-600">End Date</label>
           <input
@@ -74,7 +71,6 @@ export default function ItineraryForm({ onSubmit }) {
             className="border px-3 py-2 rounded"
           />
         </div>
-
         {/* Interests & Preferences */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -90,7 +86,6 @@ export default function ItineraryForm({ onSubmit }) {
               </label>
             ))}
           </div>
-
           <div>
             <p className="text-base font-semibold mb-1 text-gray-500">Preferences</p>
             {[
@@ -124,10 +119,9 @@ export default function ItineraryForm({ onSubmit }) {
             placeholder="e.g., No hiking, prefer indoor attractions..."
           />
         </div>
-        {/* 送出按鈕 */}
+        {/* button */}
         <button
           onClick={handleSubmit}
-          // disabled={!startDate || !endDate}  // disabled 條件判斷
           className="
             mt-4 w-full py-2 rounded
             bg-green-700 text-white

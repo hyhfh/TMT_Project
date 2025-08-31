@@ -5,7 +5,7 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
-   extend: {  // extend 裡加入自定義動畫
+   extend: {  
       keyframes: {
         fadeIn: {
           "0%": { opacity: "0" },

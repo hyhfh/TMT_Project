@@ -66,7 +66,6 @@ export default function ExplorePage() {
         <h1 className="text-3xl md:text-4xl font-extrabold text-green-800 tracking-tight mb-6">
           Explore Taipei City Attractions
         </h1>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pois.map((poi, index) => (
             <POICard key={poi.id ?? index} poi={poi} />
@@ -77,7 +76,6 @@ export default function ExplorePage() {
   );
 }
 
-/* POICard */
 function POICard({ poi }) {
   const realId = poi?.id ?? poi?.poi_id ?? poi?._id ?? null;
   const href = realId ? `/poi/${realId}` : `/poi/${encodeURIComponent(poi.name)}`;
@@ -98,7 +96,6 @@ function POICard({ poi }) {
 
   return (
     <div className="group bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition">
-      {/* 圖片區 */}
       <div className="relative w-full aspect-[16/9] overflow-hidden">
         <img
           src={poi.image_url || "/images/poi-fallback.jpg"}
@@ -106,20 +103,17 @@ function POICard({ poi }) {
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           loading="lazy"
           onError={(e) => {
-            // 避免無限觸發
             e.currentTarget.onerror = null;
             e.currentTarget.src = "/images/poi-fallback.jpg";
           }}
         />
       </div>
       
-      {/* 內容區 */}
       <div className="p-5">
         <h2 className="text-xl font-semibold text-green-800 leading-snug">
           {poi.name}
         </h2>
 
-        {/* 標籤 */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {tags.map((t) => (
@@ -133,14 +127,12 @@ function POICard({ poi }) {
           </div>
         )}
 
-        {/* 簡介 */}
         {poi.introduction && (
           <p className="text-gray-700 text-sm mt-3 line-clamp-3">
             {poi.introduction}
           </p>
         )}
 
-        {/* 按鈕區塊：靠卡片底部兩端 */}
           <div className="mt-auto pt-4 flex justify-between items-center">
             <Link
               href={href}
@@ -164,7 +156,6 @@ function POICard({ poi }) {
   );
 }
 
-/* 工具：首字大寫 */
 function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }

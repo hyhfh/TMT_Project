@@ -2,14 +2,13 @@ import Navbar from "../components/Navbar";
 import HeroSection from "../components/HeroSection";
 import WeatherBox from "../components/WeatherBox";
 import ItineraryForm from "../components/ItineraryForm";
-import POICard from "../components/POICard"; // 使用 POICard 渲染精簡資料
+import POICard from "../components/POICard"; 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useItinerary } from "../context/ItineraryContext";
 
 export default function Home() {
   const router = useRouter();
-  // const { setForm } = useItinerary();
   const { setForm, selectedPOIIds, toggleSelectedPOI } = useItinerary();
   const [topPOIs, setTopPOIs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +30,7 @@ export default function Home() {
     } catch (err) {
       console.error("Failed to fetch top POIs:", err);
     } finally {
-      setLoading(false);  // 無論成功或錯誤，都關閉 loading
+      setLoading(false);  
     }
   };
   fetchTopPOIs();
@@ -60,32 +59,27 @@ export default function Home() {
               </button>
             )}
           </div>
-
-
           {loading ? (
             <p className="text-gray-500">Loading recommendations...</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div> */}
               {topPOIs.map((poi, index) => (
                 <POICard
                   key={index}
                   poi={{
                     id: poi.id,
                     name: poi.name,
-                    // popularity: poi.popularity,
                     image_url: poi.image_url,
                   }}
                   showIntro={false}
-                  selectable={true}                                   // ✅ 讓卡片顯示 checkbox
-                  selected={selectedPOIIds.includes(poi.id)}          // ✅ 是否已被勾選
-                  onToggleSelect={toggleSelectedPOI}                  // ✅ 勾/取消時更新 context
+                  selectable={true}                                  
+                  selected={selectedPOIIds.includes(poi.id)}          
+                  onToggleSelect={toggleSelectedPOI}         
                 />
               ))}
             </div>
           )}
         </section>
-        
       </main>
     </div>
   );
