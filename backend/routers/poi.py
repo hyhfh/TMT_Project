@@ -13,7 +13,6 @@ import os, requests, math
 from datetime import datetime, timedelta, timezone
 from collections import Counter, defaultdict
 
-
 router = APIRouter()
 
 def serialize_poi(p: POI) -> dict:
@@ -38,7 +37,7 @@ def serialize_poi(p: POI) -> dict:
 
 @router.get("/api/pois", response_model=List[POIOut])
 def list_pois(
-    ids: Optional[str] = Query(None, description="逗號分隔的 id，如 1,2,3"),
+    ids: Optional[str] = Query(None, description="id like 1,2,3"),
     db: Session = Depends(get_db),
 ):
     if ids:
@@ -46,7 +45,6 @@ def list_pois(
         return db.query(POI).filter(POI.id.in_(id_list)).all()
     return db.query(POI).all()
 
-# 根據景點 id 回傳該景點的詳細資料。給前端 /poi/{id} 詳細頁用。
 @router.get("/api/pois/{poi_id}", response_model=POIOut)
 def get_poi_by_id(poi_id: int, db: Session = Depends(get_db)):
     poi = db.query(POI).filter(POI.id == poi_id).first()
@@ -54,7 +52,6 @@ def get_poi_by_id(poi_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="POI not found")
     return serialize_poi(poi)
 
-# 根據景點名稱查詢詳細資料（如果網址參數不是數字，就用這個找）
 @router.get("/api/pois/by_name", response_model=POIOut)
 def get_poi_by_name(name: str = Query(...), db: Session = Depends(get_db)):
     poi = db.query(POI).filter(POI.name == name).first()
@@ -62,7 +59,6 @@ def get_poi_by_name(name: str = Query(...), db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="POI not found")
     return serialize_poi(poi)
 
-# ---熱門 POIs
 @router.get("/api/top_pois", response_model=List[POIOut])
 def top_pois(db: Session = Depends(get_db)):
     rows = (db.query(POI).order_by(POI.popularity.desc()).limit(30).all())
@@ -77,8 +73,8 @@ def top_pois(db: Session = Depends(get_db)):
         for r in rows
     ]
 
-# ---天氣
-load_dotenv()  # 載入.env檔案
+# weather
+load_dotenv()  
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 TZ_TAIPEI = timezone(timedelta(hours=8))
 
@@ -92,7 +88,7 @@ def get_current_weather():
     return {
         "temp": data["main"]["temp"],
         "description": data["weather"][0]["description"],
-        "icon": icon  # 把 icon 加進回傳內容
+        "icon": icon 
     }
     
 @router.get("/api/weather_forecast")
@@ -107,28 +103,14 @@ def get_daily_weather(
     start: str = Query(..., pattern=r"\d{4}-\d{2}-\d{2}"),
     end: str   = Query(..., pattern=r"\d{4}-\d{2}-\d{2}")
 ):
-    """
-    以 OpenWeather 5-day/3-hour 預報為基礎，彙整成「每日」資料。
-    回傳格式：
-    {
-      "city": "Taipei",
-      "days": [
-        {"date":"YYYY-MM-DD","temp_min":27,"temp_max":34,"icon":"10d","description":"light rain","pop":60},
-        ...
-      ]
-    }
-    """
     city = "Taipei"
     url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={WEATHER_API_KEY}&units=metric"
     resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     data = resp.json()
-
-    # 解析查詢區間（含首尾日）
     start_dt = datetime.fromisoformat(start)
     end_dt = datetime.fromisoformat(end)
 
-    # 依照台北當地日把 3 小時的切片分組
     buckets = defaultdict(list)
     for it in data.get("list", []):
         dt_local = datetime.utcfromtimestamp(it["dt"]).astimezone(TZ_TAIPEI)
@@ -159,27 +141,24 @@ def get_daily_weather(
             icons.append(w.get("icon"))
             descs.append(w.get("description"))
 
-            # 挑最接近中午的切片，作為代表圖示/描述
             dt_local = datetime.utcfromtimestamp(it["dt"]).astimezone(TZ_TAIPEI)
             diff = abs((dt_local.hour + dt_local.minute/60) - 12)
             if noon_diff is None or diff < noon_diff:
                 noon_diff = diff
                 pick_noon = w
 
-        # 代表圖示/描述：以中午切片為主，沒有就取眾數
         icon = (pick_noon or {}).get("icon") or (Counter([i for i in icons if i]).most_common(1)[0][0] if icons else "01d")
         description = (pick_noon or {}).get("description") or (Counter([d for d in descs if d]).most_common(1)[0][0] if descs else "")
         temp_min = round(min(tmins) if tmins else min(temps)) if (tmins or temps) else None
         temp_max = round(max(tmaxs) if tmaxs else max(temps)) if (tmaxs or temps) else None
-        pop_pct  = round((sum(pops)/len(pops) if pops else 0) * 100)  # ← 轉百分比
-
+        pop_pct  = round((sum(pops)/len(pops) if pops else 0) * 100)  
         days.append({
             "date": date_str,
             "temp_min": int(temp_min) if temp_min is not None else None,
             "temp_max": int(temp_max) if temp_max is not None else None,
-            "icon": icon,                 # 例如 "10d"
-            "description": description,   # 例如 "light rain"
-            "pop": pop_pct                # 0~100 的整數
+            "icon": icon,                 
+            "description": description,   
+            "pop": pop_pct                
         })
 
     return {"city": "Taipei", "days": days}

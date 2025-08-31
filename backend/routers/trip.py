@@ -10,11 +10,10 @@ from backend.models.user import User
 from backend.dependencies.auth import get_current_user
 from backend.database import get_db
 
-
-router = APIRouter(  # 整組路由都需要 JWT 驗證
+router = APIRouter(  
     prefix="/trips",
     tags=["trips"],
-    dependencies=[Depends(get_current_user)],   # 👈 全部 route 都需要驗證
+    dependencies=[Depends(get_current_user)],   
 )
 
 @router.post("/", response_model=TripOut, status_code=status.HTTP_201_CREATED)
@@ -24,8 +23,6 @@ def create_trip(
     current_user: User = Depends(get_current_user),
 ):
     db_trip = crud_trip.create_trip(db, user_id=current_user.id, trip=trip)
-
-    # ⭐ 明確轉換 ORM 成 TripOut schema，避免自動推斷錯誤
     trip_out = TripOut.from_orm(db_trip)
     return JSONResponse(content=jsonable_encoder(trip_out))
 

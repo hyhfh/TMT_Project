@@ -9,17 +9,9 @@ from backend.database import get_db
 
 # JWT config
 SECRET_KEY = "tmtsk666"
-'''
-SECRET_KEY 是用來「加密與驗證 JWT token 的簽名」
-前端每次帶著 token 回來，後端會用這個 key 來驗證 token 是不是合法
-'''
 ALGORITHM = "HS256"
-'''
-JWT 的加密演算法，"HS256"：HMAC-SHA256，是對稱加密方式（用一組密鑰簽名與驗證）
-開發階段，使用 "HS256" 是最簡單也最常見的選擇
-'''
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
     credentials_exception = HTTPException(

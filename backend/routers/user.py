@@ -23,10 +23,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = crud_user.get_user_by_email(db, user.email)
     if not db_user or not crud_user.verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
     token_data = {"sub": str(db_user.id)}
     access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -39,10 +37,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     user = crud_user.get_user_by_email(db, form_data.username)
     if not user or not crud_user.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    
     token_data = {"sub": str(user.id)}  # sub = subject = user_id
     access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserOut)
