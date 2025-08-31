@@ -1,6 +1,5 @@
 .venv/
 backend/venv/
-# Python cache files
 __pycache__/
 *.py[cod]
 *.pyc
@@ -11,11 +10,9 @@ __pycache__/
 node_modules/
 .next/
 data/*.csv
-# 不要上傳的憑證
 *.env
 secrets.json
 apikey.txt
-# Jupyter and temporary files
 *.ipynb
 *.log
 *.tmp
